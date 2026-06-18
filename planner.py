@@ -1,8 +1,53 @@
 import json, os as os_mod, time
-from pathlib import Path
-from typing import Optional
 
 MAX_RETRIES = 3
+
+# ── Module-level imports ────────────────────────────────────
+try:
+    from reference import analyze as _ref_analyze, report as _ref_report
+    _HAS_REFERENCE = True
+except ImportError:
+    _HAS_REFERENCE = False
+
+# ── Success detection ────────────────────────────────────────
+FAILURE_MARKERS = [
+    "max iterations",
+    "task may be incomplete",
+    "error:",
+    "cancelled by user",
+    "unknown tool",
+    "i couldn't",
+    "i was unable",
+    "failed to",
+    "could not complete",
+]
+
+_REF_MAP = {
+    "database|sql|prisma|postgres": "https://github.com/prisma/prisma-examples",
+    "docker|container":             "https://github.com/docker/awesome-compose",
+    "react|vue|nextjs|frontend":   "https://github.com/vercel/next.js",
+    "api|rest|graphql":             "https://github.com/public-apis/public-apis",
+    "python|flask|django":          "https://github.com/pallets/flask",
+    "go|golang":                    "https://github.com/golang/go",
+    "rust|cargo":                   "https://github.com/rust-lang/rust",
+    "git|github|ci":                "https://github.com/actions/starter-workflows",
+}
+
+
+def _is_step_success(final: str | None) -> bool:
+    if not final or len(final) < 5:
+        return False
+    lo = final.lower()
+    return not any(marker in lo for marker in FAILURE_MARKERS)
+
+
+def _get_ref_url(step_desc: str) -> str | None:
+    lo = step_desc.lower()
+    for keywords, url in _REF_MAP.items():
+        if any(kw in lo for kw in keywords.split("|")):
+            return url
+    return None
+
 
 class AttemptRecord:
     def __init__(self, step_idx, tool, args, result, success):
@@ -85,10 +130,16 @@ class Plan:
         done = sum(1 for s in self.steps if s["status"] == StepStatus.DONE)
         failed = sum(1 for s in self.steps if s["status"] == StepStatus.FAILED)
         total = len(self.steps)
+        icons = {
+            StepStatus.PENDING:     "   ",
+            StepStatus.IN_PROGRESS: ">> ",
+            StepStatus.DONE:        " \u2713 ",  # checkmark
+            StepStatus.FAILED:      " \u2717 ",  # x mark
+        }
         parts = []
         for i, s in enumerate(self.steps):
+            icon = icons.get(s["status"], "   ")
             desc = s.get("desc", "")[:50]
-            icon = {"pending": "  ", "in_progress": ">>", "done": "OK", "failed": "XX"}[s["status"]]
             parts.append(f"  {icon} Step {i+1}: {desc}")
         return "\n".join(parts)
 
@@ -127,7 +178,7 @@ class PlannerAgent:
                     final = f"Error: {e}"
 
                 # Check if result indicates success
-                if final and len(final) > 5 and "error" not in final.lower()[:100]:
+                if _is_step_success(final):
                     success = True
                     plan.mark_done()
                     plan.advance()
@@ -144,32 +195,15 @@ class PlannerAgent:
                 plan.advance()
                 yield {"type": "step_failed", "index": step_idx}
                 # Auto-analyze reference for learning
-                try:
-                    from reference import analyze, report
-                    import json
-                    step_desc = step.get("desc", "").lower()
-                    refs = {
-                        "database|sql|prisma|postgres": "https://github.com/prisma/prisma-examples",
-                        "docker|container": "https://github.com/docker/awesome-compose",
-                        "react|vue|nextjs|frontend": "https://github.com/vercel/next.js",
-                        "api|rest|graphql": "https://github.com/public-apis/public-apis",
-                        "python|flask|django": "https://github.com/pallets/flask",
-                        "go|golang": "https://github.com/golang/go",
-                        "rust|cargo": "https://github.com/rust-lang/rust",
-                        "git|github|ci": "https://github.com/actions/starter-workflows",
-                    }
-                    ref_url = None
-                    for keywords, url in refs.items():
-                        if any(kw in step_desc for kw in keywords.split("|")):
-                            ref_url = url
-                            break
+                if _HAS_REFERENCE:
+                    ref_url = _get_ref_url(step.get("desc", ""))
                     if ref_url:
-                        data = analyze(ref_url)
-                        if "error" not in data:
-                            result = report(data)
-                            yield {"type": "token", "content": "\n[auto] Referensi: " + ref_url + "\n"}
-                except:
-                    pass
+                        try:
+                            data = _ref_analyze(ref_url)
+                            if "error" not in data:
+                                yield {"type": "token", "content": "\n[auto] Learning from: " + ref_url + "\n"}
+                        except:
+                            pass
 
         # Phase 3: Summary
         summary = self._build_summary(plan)
