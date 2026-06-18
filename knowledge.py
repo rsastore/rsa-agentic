@@ -26,6 +26,27 @@ def get_bundled_stats():
     b = _load_bundled()
     return f"Bundled: {len(b['metadata'])} metadata + {len(b['dataset'])} dataset samples"
 
+def search_dataset(query, k=1):
+    """Search bundled dataset for few-shot examples."""
+    b = _load_bundled()
+    ds = b.get("dataset", [])
+    if not ds:
+        return []
+    q = query.lower()
+    q_words = set(q.split())
+    scored = []
+    for i, sample in enumerate(ds):
+        msgs = sample.get("messages", [])
+        if not msgs:
+            continue
+        user_msg = msgs[0].get("content", "").lower()
+        user_words = set(user_msg.split())
+        overlap = len(q_words & user_words)
+        if overlap:
+            scored.append((overlap, sample))
+    scored.sort(key=lambda x: -x[0])
+    return [s for _, s in scored[:k]]
+
 def search_bundled(query, k=5):
     """Search bundled metadata for matching intents."""
     b = _load_bundled()
@@ -152,12 +173,25 @@ def search_knowledge(query, k=5):
     except:
         pass
     
+    # Also search dataset for few-shot examples
+    dataset_example = None
+    try:
+        for sample in search_dataset(query, 1):
+            msgs = sample.get("messages", [])
+            if msgs:
+                dataset_example = f"Example: '{msgs[0]['content'][:50]}'"
+    except:
+        pass
+    
     combined.sort(key=lambda x: -x[0])
+    
     
     lines = ["## Knowledge Context"]
     for score, doc, method in combined[:k]:
         tag = "🔤" if method == "bm25" else ("🧠" if method == "vector" else "📦")
         lines.append(f"[{tag}{score:.2f}] {doc}")
+    if dataset_example:
+        lines.append(f"[💡] {dataset_example}")
     return "\n".join(lines)
 
 # ── Learning quality filters ──────────────────────────────────
