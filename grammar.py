@@ -3,7 +3,6 @@ import re, json
 
 COMMON_FIXES = [
     (r':\s*:', ':'),
-    (r"'([^']+)'", r'"\1"'),
     (r',\s*\}', '}'),
 ]
 

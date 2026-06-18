@@ -3,14 +3,19 @@ import json, os, re, time, math
 from pathlib import Path
 from collections import Counter
 
-KDIR = Path(os.path.expanduser("~/rsa-agentic/knowledge"))
+KDIR = Path(__file__).parent / "knowledge"
+
+import threading as _threading
+_lock = _threading.Lock()
 
 def _load(n):
     p = KDIR / n
-    return json.loads(p.read_text()) if p.exists() else []
+    with _lock:
+        return json.loads(p.read_text()) if p.exists() else []
 
 def _save(n, d):
-    (KDIR / n).write_text(json.dumps(d, indent=2, default=str))
+    with _lock:
+        (KDIR / n).write_text(json.dumps(d, indent=2, default=str))
 
 class BM25:
     def __init__(self, docs):
