@@ -124,10 +124,16 @@ def _exec_shell(cmd: str, cwd: str = "."):
             out += "\nSTDERR: {}".format(r.stderr[:300])
     return out.strip()
 
+PROJECT_ROOT = Path(__file__).parent.parent  # ~/rsa-agentic/
+
 def _read_file(path: str):
     p = Path(path)
     if not p.exists():
-        return f"File not found: {path}"
+        # Try relative to project root
+        p2 = PROJECT_ROOT / path
+        if p2.exists():
+            return p2.read_text(encoding="utf-8", errors="replace")
+        return f"File not found: {path} (tried: {p.resolve()} and {p2})"
     return p.read_text(encoding="utf-8", errors="replace")
 
 SYSTEM_PATHS = ["/etc/", "/boot/", "/usr/", "/bin/", "/sbin/", "/lib/", "/var/log/"]
@@ -142,6 +148,13 @@ def _write_file(path: str, content: str):
     return f"Written {len(content)} bytes to {path}"
 
 def _list_dir(path: str = "."):
+    p = Path(path)
+    if not p.exists():
+        p2 = PROJECT_ROOT / path
+        if p2.exists():
+            path = str(p2)
+        else:
+            return f"Directory not found: {path}"
     items = os_mod.listdir(path)
     lines = []
     for name in sorted(items):

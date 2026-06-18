@@ -16,6 +16,10 @@ try:
 except ImportError:
     import tomli as tomllib  # pip install tomli
 
+# Auto-cd to project root (works on Colab, VPS, etc.)
+_PROJECT_ROOT = Path(__file__).parent.resolve()
+os.chdir(str(_PROJECT_ROOT))
+
 def main():
     # Check first-run: warn if no providers configured
     import tomllib

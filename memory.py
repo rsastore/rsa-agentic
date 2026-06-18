@@ -1,3 +1,4 @@
+from __future__ import annotations
 """Memory system: working, episodic, preference memory for local LLMs."""
 import json, os, time
 from pathlib import Path
