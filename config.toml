@@ -1,0 +1,32 @@
+[brand]
+name = "Neural"
+version = "0.1.0"
+
+[model]
+provider = "ollama"
+model_name = "qwen2.5:1.5b"
+temperature = 0.3
+max_tokens = 4096
+ctx_size = 8192
+
+[model.ollama]
+host = "http://localhost:11434"
+
+[model.openai]
+api_key = ""
+base_url = "https://api.openai.com/v1"
+model = "gpt-4o"
+
+[agent]
+max_tool_iters = 15
+system_prompt_file = "system.md"
+
+[tools]
+approved = ["exec_shell", "read_file", "write_file", "list_dir", "grep_files"]
+need_approval = ["exec_shell"]
+
+[ui]
+theme = "dark"
+show_tool_calls = true
+stream_output = true
+compact_at_pct = 60
