@@ -29,11 +29,13 @@ class OllamaProvider(ModelProvider):
         r = self._call(messages, stream=False)
         r.raise_for_status()
         data = r.json()
+        self.last_tokens = {"input": data.get("prompt_eval_count",0), "output": data.get("eval_count",0)}
         return data.get("message", {}).get("content", "")
 
     def chat_stream(self, messages: list[dict], **kwargs):
         r = self._call(messages, stream=True)
         r.raise_for_status()
+        self.last_tokens = {"input": 0, "output": 0}
         for line in r.iter_lines(decode_unicode=True):
             if line:
                 data = json.loads(line)
@@ -41,6 +43,7 @@ class OllamaProvider(ModelProvider):
                 if content:
                     yield content
                 if data.get("done", False):
+                    self.last_tokens = {"input": data.get("prompt_eval_count",0), "output": data.get("eval_count",0)}
                     break
 
 
@@ -63,6 +66,7 @@ class OpenAIProvider(ModelProvider):
             messages=messages,
             temperature=self.temperature,
         )
+        self.last_tokens = {"input": r.usage.prompt_tokens if r.usage else 0, "output": r.usage.completion_tokens if r.usage else 0}
         return r.choices[0].message.content or ""
 
     def chat_stream(self, messages: list[dict], **kwargs):
@@ -74,10 +78,13 @@ class OpenAIProvider(ModelProvider):
             temperature=self.temperature,
             stream=True,
         )
+        self.last_tokens = {"input": 0, "output": 0}
         for chunk in r:
             delta = chunk.choices[0].delta.content or ""
             if delta:
                 yield delta
+            if chunk.usage:
+                self.last_tokens = {"input": chunk.usage.prompt_tokens, "output": chunk.usage.completion_tokens}
 
 
 def create_provider(config: dict) -> ModelProvider:

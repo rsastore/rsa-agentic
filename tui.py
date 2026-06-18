@@ -654,6 +654,109 @@ class NeuralTUI:
                     tomli_w.dump(cfg, f)
                 console.print(f"[green]Added provider: {pname}[/green]")
                 console.print("[dim]To use it: /provider set {pname}[/dim]")
+        elif cmd == "/project":
+            import subprocess, json
+            cwd = os.getcwd()
+            console.print(f"[bold cyan]Project: {os.path.basename(cwd)}[/bold cyan]")
+            console.print(f"  [dim]Path: {cwd}[/dim]")
+            # Auto-detect project type
+            detectors = {
+                "package.json": ("Node.js", lambda d: json.loads(open(f"{d}/package.json").read()).get("name","?")),
+                "Cargo.toml": ("Rust", lambda d: [l for l in open(f"{d}/Cargo.toml") if l.startswith("name")][0].split("=")[-1].strip().strip('"')),
+                "pyproject.toml": ("Python", lambda d: "pyproject"),
+                "go.mod": ("Go", lambda d: open(f"{d}/go.mod").readline().split()[-1]),
+                "Gemfile": ("Ruby", lambda d: "ruby"),
+                "composer.json": ("PHP", lambda d: json.loads(open(f"{d}/composer.json").read()).get("name","?")),
+                "build.gradle": ("Java/Kotlin", lambda d: "gradle"),
+                "CMakeLists.txt": ("C/C++", lambda d: "cmake"),
+                "Makefile": ("C/C++", lambda d: "make"),
+                "Dockerfile": ("Docker", lambda d: "docker"),
+            }
+            found = False
+            for fname, (lang, parser) in detectors.items():
+                fp = f"{cwd}/{fname}"
+                if os.path.exists(fp):
+                    try:
+                        name = parser(cwd)
+                        console.print(f"  [green]●[/green] {lang:<15} {name}")
+                    except:
+                        console.print(f"  [green]●[/green] {lang:<15} {fname}")
+                    found = True
+            # Git info
+            try:
+                r = subprocess.run(["git","remote","-v"], capture_output=True, text=True, timeout=5, cwd=cwd)
+                if r.stdout:
+                    for line in r.stdout.split("\n")[0:1]:
+                        parts = line.split()
+                        if len(parts) >= 2:
+                            console.print(f"  [cyan]●[/cyan] Git remote:  {parts[1]}")
+            except: pass
+            # Dependencies count
+            for pf, label in [("package.json", "npm"), ("Cargo.lock", "cargo"), ("requirements.txt", "pip")]:
+                if os.path.exists(f"{cwd}/{pf}"):
+                    console.print(f"  [dim]●[/dim] {label} project detected")
+            if not found:
+                console.print("  [yellow]Unknown project type[/yellow]")
+        elif cmd == "/tree":
+            cmd_str = cmd.strip()
+            depth = 2
+            parts = cmd_str.split()
+            if len(parts) > 1:
+                try: depth = int(parts[1])
+                except: depth = 2
+            import subprocess
+            cwd = os.getcwd()
+            try:
+                r = subprocess.run(["find",cwd,"-maxdepth",str(depth),"-not","-path","*/node_modules/*","-not","-path","*/.git/*","-not","-path","*/__pycache__/*","-not","-path","*/vendor/*","|","sort"], capture_output=True, text=True, timeout=10, shell=True)
+                lines = r.stdout.strip().split("\n")[:50]
+                console.print(f"[bold cyan]Project Tree[/bold cyan] (depth={depth}, max 50)")
+                for line in lines:
+                    if line.strip():
+                        rel = line.replace(cwd, ".").strip("/")
+                        depth_level = rel.count("/")
+                        indent = "  " * depth_level
+                        name = rel.split("/")[-1]
+                        icon = "📁" if os.path.isdir(line) else "📄"
+                        console.print(f"  {indent}{icon} {name}")
+                if len(lines) >= 50:
+                    console.print(f"  [dim]... (truncated at 50)[/dim]")
+            except Exception as e:
+                console.print(f"[red]Error: {e}[/red]")
+        elif cmd == "/cost":
+            console.print(f"[bold cyan]Session Cost[/bold cyan]")
+            try:
+                t = self.session.total_tokens
+                provider_name = getattr(self.provider, "name", "?")
+                console.print(f"  Provider:  {provider_name}")
+                inp = t.get("input", 0)
+                out = t.get("output", 0)
+                console.print(f"  Input:     {inp:,} tokens")
+                console.print(f"  Output:    {out:,} tokens")
+                console.print(f"  Total:     {inp+out:,} tokens")
+                # Cost estimates per 1M tokens
+                rates = {
+                    "gpt-4o": (2.50, 10.00),
+                    "gpt-4o-mini": (0.15, 0.60),
+                    "claude": (3.00, 15.00),
+                    "gemini": (0.10, 0.40),
+                    "deepseek": (0.14, 0.28),
+                    "qwen": (0.0, 0.0),
+                    "llama": (0.0, 0.0),
+                }
+                pname = provider_name.lower()
+                est = 0.0
+                for key, (r_in, r_out) in rates.items():
+                    if key in pname:
+                        est = (inp/1000000*r_in + out/1000000*r_out)
+                        break
+                if est > 0:
+                    console.print(f"  Est cost:  ${est:.6f}")
+                else:
+                    console.print(f"  Cost:      [green]local (free)[/green]")
+                # Messages count
+                console.print(f"  Messages:  {len(self.session.messages)}")
+            except Exception as e:
+                console.print(f"  [dim]No session data[/dim]")
         elif cmd == "/plugins":
             try:
                 from plugin_loader import list_loaded, list_tools as plt

@@ -67,6 +67,7 @@ class AgentSession:
         self.persona = "default"
         self._messages: list[dict] = []
         self.tool_callbacks: list[Callable] = []
+        self.total_tokens = {"input": 0, "output": 0}
 
     @property
     def messages(self) -> list[dict]:
@@ -201,6 +202,14 @@ class AgentSession:
                 collected = [raw]
                 yield {"type": "token", "content": raw}
             raw = "".join(collected)
+            # Track tokens
+            try:
+                t = getattr(self.provider, "last_tokens", {})
+                if t:
+                    self.total_tokens["input"] += t.get("input", 0)
+                    self.total_tokens["output"] += t.get("output", 0)
+            except:
+                pass
             call = self._extract_tool_call(raw)
             if call is None:
                 self._messages.append({"role": "assistant", "content": raw})
