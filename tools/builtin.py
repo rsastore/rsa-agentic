@@ -162,17 +162,63 @@ BUILTIN_TOOLS = [
 ]
 
 TOOL_MAP = {t.name: t for t in BUILTIN_TOOLS}
+_PLUGIN_TOOLS_REGISTERED = False
 
+def _ensure_plugins():
+    global _PLUGIN_TOOLS_REGISTERED
+    if _PLUGIN_TOOLS_REGISTERED:
+        return
+    _PLUGIN_TOOLS_REGISTERED = True
+    try:
+        from plugin_loader import discover
+        discover()
+    except Exception:
+        pass
 
 def get_tool(name: str) -> Tool | None:
-    return TOOL_MAP.get(name)
+    t = TOOL_MAP.get(name)
+    if t:
+        return t
+    _ensure_plugins()
+    try:
+        from plugin_loader import get_tool as pg
+        pt = pg(name)
+        if pt:
+            return Tool(pt.name, pt.fn, pt.desc, pt.params)
+    except Exception:
+        pass
+    return None
+
+def list_tools() -> list[str]:
+    builtin = list(TOOL_MAP.keys())
+    _ensure_plugins()
+    try:
+        from plugin_loader import list_tools as pl
+        builtin.extend(pl())
+    except Exception:
+        pass
+    return builtin
 
 def tool_descriptions() -> str:
     lines = []
     for t in BUILTIN_TOOLS:
         params = ", ".join(f"{k}: {v}" for k, v in t.params.items())
         lines.append(f"- {t.name}({params}): {t.description}")
-    return "\n".join(lines)
+    _ensure_plugins()
+    try:
+        from plugin_loader import descriptions as pd
+        pds = pd()
+        if pds:
+            lines.append("")
+            lines.append("### Plugin Tools")
+            lines.append(pds)
+    except Exception:
+        pass
+    return "\\n".join(lines)
 
-def list_tools() -> list[str]:
-    return list(TOOL_MAP.keys())
+def plugin_tool_count() -> int:
+    try:
+        from plugin_loader import list_tools as pl
+        return len(pl())
+    except:
+        return 0

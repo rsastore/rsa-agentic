@@ -224,6 +224,7 @@ class NeuralTUI:
 - `/tools` — List available tools
 - `/compact` — Compact long context (summarize old messages)
 - `/plan` — Show planning mode
+- `/plugins` — List loaded plugins & tools
 - `/checklist` — Show tasks
 - `/checklist add <task>` — Add task
 - `/checklist done <n>` — Mark done
@@ -308,6 +309,23 @@ class NeuralTUI:
             console.print("  [green]  • Step 1: do this[/green]")
             console.print("  [green]  • Step 2: do that[/green]")
             console.print("  [dim]To track progress, use exec_shell to update a checklist file.[/dim]")
+        elif cmd == "/plugins":
+            try:
+                from plugin_loader import list_loaded, list_tools as plt
+                loaded = list_loaded()
+                if loaded:
+                    console.print("[bold]Loaded plugins:[/bold]")
+                    for p in loaded:
+                        console.print(f"  [green]●[/green] {p}")
+                    ptools = plt()
+                    if ptools:
+                        console.print("[bold]Plugin tools:[/bold]")
+                        for t in ptools:
+                            console.print(f"  [cyan]  └ {t}[/cyan]")
+                else:
+                    console.print("[dim]No plugins loaded.[/dim]")
+            except ImportError:
+                console.print("[dim]Plugin system not available.[/dim]")
         elif cmd.startswith("/session"):
             parts = cmd.split(maxsplit=1)
             sub = parts[1].strip() if len(parts) > 1 else ""
