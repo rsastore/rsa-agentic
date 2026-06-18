@@ -60,4 +60,12 @@ def run_cli(config: dict, prompt: str):
     console.print(Markdown(result))
 
 if __name__ == "__main__":
-    main()
+    if "--server" in __import__("sys").argv:
+        from server import run_server
+        import tomllib
+        from models.providers import create_provider
+        cfg = tomllib.load(open(os.path.expanduser("~/neural/config.toml"),"rb"))
+        provider = create_provider(cfg.get("model",{}))
+        run_server(provider=provider, config=cfg.get("agent",{}))
+    else:
+        main()

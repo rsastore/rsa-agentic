@@ -143,6 +143,33 @@ class PlannerAgent:
                 plan.mark_failed()
                 plan.advance()
                 yield {"type": "step_failed", "index": step_idx}
+                # Auto-analyze reference for learning
+                try:
+                    from reference import analyze, report
+                    import json
+                    step_desc = step.get("desc", "").lower()
+                    refs = {
+                        "database|sql|prisma|postgres": "https://github.com/prisma/prisma-examples",
+                        "docker|container": "https://github.com/docker/awesome-compose",
+                        "react|vue|nextjs|frontend": "https://github.com/vercel/next.js",
+                        "api|rest|graphql": "https://github.com/public-apis/public-apis",
+                        "python|flask|django": "https://github.com/pallets/flask",
+                        "go|golang": "https://github.com/golang/go",
+                        "rust|cargo": "https://github.com/rust-lang/rust",
+                        "git|github|ci": "https://github.com/actions/starter-workflows",
+                    }
+                    ref_url = None
+                    for keywords, url in refs.items():
+                        if any(kw in step_desc for kw in keywords.split("|")):
+                            ref_url = url
+                            break
+                    if ref_url:
+                        data = analyze(ref_url)
+                        if "error" not in data:
+                            result = report(data)
+                            yield {"type": "token", "content": "\n[auto] Referensi: " + ref_url + "\n"}
+                except:
+                    pass
 
         # Phase 3: Summary
         summary = self._build_summary(plan)

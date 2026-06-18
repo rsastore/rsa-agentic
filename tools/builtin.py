@@ -1,5 +1,6 @@
 import subprocess, json, os as os_mod
 from pathlib import Path
+from tools.git_tools import _git_status, _git_diff, _git_commit, _git_log
 from typing import Any
 
 # ── Tool Registry ──────────────────────────────────────────────
@@ -150,6 +151,18 @@ def _edit_file(path: str, search: str, replace: str, mode: str = "preview"):
     return f"Unknown mode: {mode}. Use 'preview' or 'apply'."
 
 
+
+def _notify(title: str, body: str = ""):
+    """Send desktop notification."""
+    try:
+        print(f"\033]9;{title};{body}\033\\", end="", flush=True)
+        return f"Notification sent: {title}"
+    except:
+        pass
+    # Fallback: print to terminal
+    return f"[NOTIFICATION] {title}: {body}"
+
+
 BUILTIN_TOOLS = [
     Tool("edit_file", _edit_file,
          "Edit a file with search/replace. Always call with mode='preview' first, then mode='apply'.",
@@ -187,6 +200,26 @@ BUILTIN_TOOLS = [
     Tool("python_exec", _python_exec,
          "Execute Python code and return output.",
          {"code": "Python code to run"}),
+
+    Tool("notify", _notify,
+         "Send a desktop notification.",
+         {"title": "title", "body": "body (optional)"}),
+
+    Tool("git_status", _git_status,
+         "Show git working tree status.",
+         {"path": "repo path (default .)"}),
+
+    Tool("git_diff", _git_diff,
+         "Show staged/unstaged git changes.",
+         {"path": "repo path (default .)"}),
+
+    Tool("git_commit", _git_commit,
+         "Stage all files and commit.",
+         {"message": "commit message", "path": "repo path (default .)"}),
+
+    Tool("git_log", _git_log,
+         "Show recent git commits.",
+         {"max_count": "commits (default 5)", "path": "repo path (default .)"}),
 ]
 
 TOOL_MAP = {t.name: t for t in BUILTIN_TOOLS}
