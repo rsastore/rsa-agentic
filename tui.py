@@ -15,6 +15,7 @@ from rich.text import Text
 from rich import box
 
 from agent import AgentSession, SubAgent
+from planner import PlannerAgent, Plan
 from compact import compact_messages
 from models.providers import create_provider
 from tools.builtin import list_tools
@@ -302,13 +303,52 @@ class NeuralTUI:
             )
             after = len(self.session.messages)
             console.print(f"[green]Compacted: {before} → {after} messages[/green]")
+        elif cmd.startswith("/plan "):
+            goal = cmd[6:].strip()
+            if not goal:
+                console.print("[yellow]Usage: /plan <goal>[/yellow]")
+            else:
+                console.print("[bold cyan]Neural Planner[/bold cyan]")
+                console.print(f"[dim]Goal: {goal}[/dim]\\n")
+                planner = PlannerAgent(self.session)
+                try:
+                    for event in planner.run_with_plan(goal):
+                        if event["type"] == "plan":
+                            console.print("[bold]Plan:[/bold]")
+                            for i, s in enumerate(event["steps"], 1):
+                                desc = s.get("desc", "?")
+                                console.print(f"  [cyan]{i}.[/cyan] {desc}")
+                            console.print()
+                        elif event["type"] == "step_start":
+                            idx = event["index"] + 1
+                            desc = event.get("desc", "")[:50]
+                            console.print(f"\\n[bold]Step {idx}:[/bold] {desc} [dim](attempt {event['attempt']})[/dim]")
+                        elif event["type"] == "token":
+                            sys.stdout.write(event["content"])
+                            sys.stdout.flush()
+                        elif event["type"] == "tool_call":
+                            console.print(f"\\n  [bright_black]⚡ {event['tool']}(...)[/bright_black]")
+                        elif event["type"] == "approval_needed":
+                            console.print(f"\\n  [bold yellow]⚠️  Allow {event['tool']}?[/bold yellow] [y/N] ", end="")
+                            ans = input().strip().lower()
+                            self.session._pending_approved = (ans == "y")
+                        elif event["type"] == "tool_result":
+                            r = event["content"][:150]
+                            console.print(f"  [bright_black]  └─ {r}[/bright_black]")
+                        elif event["type"] == "step_done":
+                            console.print(f"\\n  [green]✓ Step {event['index'] + 1} complete[/green]")
+                        elif event["type"] == "step_retry":
+                            console.print(f"\\n  [yellow]↻ Retry {event['retry']}[/yellow]")
+                        elif event["type"] == "step_failed":
+                            console.print(f"\\n  [red]✗ Step {event['index'] + 1} failed[/red]")
+                        elif event["type"] == "final":
+                            console.print(f"\\n[bold cyan]Result:[/bold cyan]\\n{event['content']}")
+                except Exception as e:
+                    console.print(f"\\n[red]Planner error: {e}[/red]")
         elif cmd == "/plan":
-            console.print("[bold cyan]Neural Plan[/bold cyan]")
-            console.print("  [dim]Agent will plan before executing complex tasks.[/dim]")
-            console.print("  [dim]Create a checklist with items like:[/dim]")
-            console.print("  [green]  • Step 1: do this[/green]")
-            console.print("  [green]  • Step 2: do that[/green]")
-            console.print("  [dim]To track progress, use exec_shell to update a checklist file.[/dim]")
+            console.print("[bold cyan]Neural Planner[/bold cyan]")
+            console.print("  [dim]Usage: /plan <goal>[/dim]")
+            console.print("  [dim]Example: /plan cek disk usage dan laporan[/dim]")
         elif cmd == "/plugins":
             try:
                 from plugin_loader import list_loaded, list_tools as plt
