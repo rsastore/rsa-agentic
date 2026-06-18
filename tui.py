@@ -167,20 +167,42 @@ class NeuralTUI:
                 self._handle_command(user_input)
                 continue
 
-            # Show thinking
-            sys.stdout.write("  ⚡ ")
-            sys.stdout.flush()
+            # Streaming + approval loop
+            buf = []
+            tool_cancelled = False
+            self.tool_history.clear()
+            console.print()
 
             try:
-                output = self.session.run(user_input)
-                self.tool_history.clear()
-
-                # Print result in chat bubble
-                self._print_chat_bubble("assistant", output)
-
-                # Save session
-                saved = self._save_session(user_input, output)
-                console.print(f"  [dim]💾 {saved}[/dim]")
+                for event in self.session.run_stream(user_input):
+                    if event["type"] == "token":
+                        sys.stdout.write(event["content"])
+                        sys.stdout.flush()
+                        buf.append(event["content"])
+                    elif event["type"] == "tool_call":
+                        console.print(f"\n  [bright_black]⚡ {event['tool']}(...)[/bright_black]")
+                    elif event["type"] == "approval_needed":
+                        args_str = str(event.get("args", {}))[:100]
+                        console.print(f"\n  [bold yellow]⚠️  Allow {event['tool']}?[/bold yellow]")
+                        console.print(f"  [dim]{args_str}[/dim]")
+                        console.print("  [y/N] ", end="")
+                        ans = input().strip().lower()
+                        if ans == "y":
+                            console.print("  [green]Approved.[/green]")
+                            self.session._pending_approved = True
+                        else:
+                            tool_cancelled = True
+                            console.print("  [yellow]Skipped.[/yellow]")
+                            self.session._pending_approved = False
+                    elif event["type"] == "tool_result":
+                        r = event["content"][:200]
+                        console.print(f"  [bright_black]  └─ {r}[/bright_black]")
+                    elif event["type"] == "final":
+                        output = event["content"]
+                        console.print()
+                        self._print_chat_bubble("assistant", output)
+                        saved = self._save_session(user_input, output)
+                        console.print(f"  [dim]💾 {saved}[/dim]")
 
             except Exception as e:
                 console.print(f"\n  [bold red]Error:[/bold red] {e}")

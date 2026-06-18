@@ -146,6 +146,60 @@ class AgentSession:
         })
         return "Max iterations reached."
 
+    def run_stream(self, user_input: str):
+        sys_file = self.config.get("system_prompt_file", "system.md")
+        sys_path = Path(os_mod.path.expanduser("~/neural")) / sys_file
+        custom = sys_path.read_text() if sys_path.exists() else None
+        sys_prompt = build_system_prompt(custom)
+        if not self._messages:
+            self._messages.append({"role": "system", "content": sys_prompt})
+        self._messages.append({"role": "user", "content": user_input})
+        need_approval = self.config.get("need_approval", ["exec_shell"])
+        self._pending_approved = True
+        for step in range(self.max_iters):
+            collected = []
+            try:
+                for token in self.provider.chat_stream(self._messages):
+                    collected.append(token)
+                    yield {"type": "token", "content": token}
+            except Exception:
+                raw = self.provider.chat(self._messages)
+                collected = [raw]
+                yield {"type": "token", "content": raw}
+            raw = "".join(collected)
+            call = self._extract_tool_call(raw)
+            if call is None:
+                self._messages.append({"role": "assistant", "content": raw})
+                yield {"type": "final", "content": raw}
+                return
+            tool_name = call.get("tool", "")
+            tool_args = call.get("args", {})
+            if not isinstance(tool_args, dict):
+                tool_args = {}
+            yield {"type": "tool_call", "tool": tool_name, "args": tool_args}
+            if tool_name in need_approval:
+                self._pending_approved = False  # Reset
+                yield {"type": "approval_needed", "tool": tool_name, "args": tool_args}
+                # TUI sets self._pending_approved before next iteration
+                if not self._pending_approved:
+                    output = "Cancelled by user"
+                    yield {"type": "tool_result", "content": output}
+                    self._messages.append({"role": "assistant", "content": raw})
+                    self._messages.append({"role": "tool", "content": f"[{tool_name}] {output}"})
+                    yield {"type": "token", "content": "\n[⛔ Cancelled]\n"}
+                    continue
+            tool = get_tool(tool_name)
+            if tool is None:
+                output = f"Unknown tool '{tool_name}'"
+            else:
+                output = tool(**tool_args)
+            for cb in self.tool_callbacks:
+                cb(tool_name, tool_args, output)
+            yield {"type": "tool_result", "content": output[:500]}
+            self._messages.append({"role": "assistant", "content": raw})
+            self._messages.append({"role": "tool", "content": f"[{tool_name}] Result:\n{output[:3000]}"})
+        yield {"type": "final", "content": "Max iterations reached."}
+
 
 class SubAgent:
     """A lightweight sub-agent for parallel task execution."""

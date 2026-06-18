@@ -20,6 +20,7 @@ model = "gpt-4o"
 [agent]
 max_tool_iters = 15
 system_prompt_file = "system.md"
+need_approval = ["exec_shell"]
 
 [tools]
 approved = ["exec_shell", "read_file", "write_file", "list_dir", "grep_files"]

@@ -102,7 +102,36 @@ def _fetch_url(url: str, max_chars: int = 5000):
         return f"Error fetching URL: {e}"
 
 
+def _edit_file(path: str, search: str, replace: str, mode: str = "preview"):
+    """Edit a file with search/replace. Shows diff in preview mode."""
+    import difflib
+    p = Path(path)
+    if not p.exists():
+        return f"File not found: {path}"
+    old_content = p.read_text(encoding="utf-8", errors="replace")
+    idx = old_content.find(search)
+    if idx == -1:
+        return f"Error: search text not found in {path}"
+    new_content = old_content[:idx] + replace + old_content[idx + len(search):]
+    diff = list(difflib.unified_diff(
+        old_content.splitlines(True), new_content.splitlines(True),
+        fromfile=f"a/{path}", tofile=f"b/{path}", lineterm=""
+    ))
+    diff_text = "".join(diff[:40])  # Max 40 lines of diff
+    if mode == "preview":
+        return f"--- Diff for {path} ---\n{diff_text}\n--- End diff ({len(diff)} lines) ---\nCall with mode='apply' to apply."
+    elif mode == "apply":
+        p.write_text(new_content, encoding="utf-8")
+        return f"Applied changes to {path} ({len(diff)} lines changed).\n{diff_text}"
+    return f"Unknown mode: {mode}. Use 'preview' or 'apply'."
+
+
 BUILTIN_TOOLS = [
+    Tool("edit_file", _edit_file,
+         "Edit a file with search/replace. Always call with mode='preview' first, then mode='apply'.",
+         {"path": "file path", "search": "text to find", "replace": "replacement text",
+          "mode": "'preview' (default) or 'apply'"}),
+
     Tool("web_fetch", _fetch_url,
          "Fetch a URL and extract readable text.",
          {"url": "URL to fetch", "max_chars": "max chars to return (optional)"}),
