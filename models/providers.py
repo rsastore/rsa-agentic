@@ -97,12 +97,12 @@ def create_provider(config: dict) -> ModelProvider:
         return AnthropicProvider(prov_cfg)
     elif prov_name == "google":
         return GoogleProvider(prov_cfg)
-    elif prov_name in config.get("model", {}):
-        # Try OpenAI-compatible for unknown providers
-        prov_cfg["model"] = prov_cfg.get("model", "gpt-4o")
-        return OpenAIProvider(prov_cfg)
     else:
-        raise ValueError(f"Unknown provider: {prov_name}")
+        # Unknown provider: try OpenAI-compatible (covers OpenRouter, DeepSeek, Groq, xAI, Together, etc.)
+        prov_cfg["model"] = prov_cfg.get("model", config.get("model_name") or "gpt-4o")
+        if prov_cfg.get("api_key") or prov_cfg.get("base_url"):
+            return OpenAIProvider(prov_cfg)
+        raise ValueError(f"Unknown provider: {prov_name}. Use /provider add <name> <base_url> <key> to register.")
 
 
 class AnthropicProvider(ModelProvider):

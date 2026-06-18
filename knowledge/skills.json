@@ -16,5 +16,25 @@
     "args_tmpl": {},
     "created": 1781804197.319634,
     "ok": 1
+  },
+  {
+    "name": "test_skill",
+    "pattern": "check disk -> df -h",
+    "tool": "exec_shell",
+    "args_tmpl": {
+      "cmd": "df -h"
+    },
+    "created": 1781805078.076024,
+    "ok": 1
+  },
+  {
+    "name": "use_exec_shell",
+    "pattern": "cek disk",
+    "tool": "exec_shell",
+    "args_tmpl": {
+      "cmd": "df -h"
+    },
+    "created": 1781805078.0769937,
+    "ok": 1
   }
 ]

@@ -22,5 +22,11 @@
     "content": "Tool untuk cek detail artwork di domain art dealer: returns price, availability, artist",
     "source": "",
     "created": 1781804197.3198936
+  },
+  {
+    "topic": "Test Fact",
+    "content": "df -h checks disk usage",
+    "source": "test",
+    "created": 1781805078.0756643
   }
 ]

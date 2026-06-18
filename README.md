@@ -98,6 +98,3 @@ neural/
 |- sessions/       Saved conversations
 ```
 
-## Credits
-
-Inspired by DeepSeek TUI, Claude Code, Goose, OpenHands, Continue, GPT Codex.
