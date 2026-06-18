@@ -12,6 +12,9 @@ Autonomous AI Agent — Terminal Native. Local LLM or Cloud API.
 git clone https://github.com/rsastore/rsa-agentic.git
 cd rsa-agentic
 
+# Update (get latest features + bug fixes)
+git pull
+
 # Local (Ollama)
 pip install prompt_toolkit rich requests
 ollama pull qwen2.5:1.5b
