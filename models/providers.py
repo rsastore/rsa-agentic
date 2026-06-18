@@ -7,6 +7,9 @@ class OllamaProvider(ModelProvider):
         self.model = config.get("model_name", "qwen2.5:1.5b")
         self.temperature = config.get("temperature", 0.3)
         self.max_tokens = config.get("max_tokens", 4096)
+        self.timeout = config.get("timeout", 120)
+        import requests
+        self.session = requests.Session()
 
     @property
     def name(self) -> str:
@@ -23,11 +26,16 @@ class OllamaProvider(ModelProvider):
             },
             "stream": stream,
         }
-        return requests.post(url, json=body, timeout=120)
+        return self.session.post(url, json=body, timeout=self.timeout)
 
     def chat(self, messages: list[dict], **kwargs) -> str:
         r = self._call(messages, stream=False)
-        r.raise_for_status()
+        if r.status_code in (429, 502, 503):
+            import time
+            time.sleep(5)
+            r = self.session.post(f"{self.host}/api/chat", json=body, timeout=self.timeout)
+        if r.status_code != 200:
+            return f"Error: Ollama returned {r.status_code}: {r.text[:100]}"
         data = r.json()
         self.last_tokens = {"input": data.get("prompt_eval_count",0), "output": data.get("eval_count",0)}
         return data.get("message", {}).get("content", "")
@@ -67,7 +75,10 @@ class OpenAIProvider(ModelProvider):
         return f"OpenAI/{self.model}"
 
     def chat(self, messages: list[dict], **kwargs) -> str:
-        from openai import OpenAI
+        try:
+            from openai import OpenAI
+        except ImportError:
+            return "Error: openai not installed. Run: pip install openai"
         client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         r = client.chat.completions.create(
             model=self.model,
@@ -78,7 +89,10 @@ class OpenAIProvider(ModelProvider):
         return r.choices[0].message.content or ""
 
     def chat_stream(self, messages: list[dict], **kwargs):
-        from openai import OpenAI
+        try:
+            from openai import OpenAI
+        except ImportError:
+            return "Error: openai not installed. Run: pip install openai"
         client = OpenAI(api_key=self.api_key, base_url=self.base_url)
         r = client.chat.completions.create(
             model=self.model,
@@ -132,7 +146,10 @@ class AnthropicProvider(ModelProvider):
         return f"Anthropic/{self.model}"
 
     def chat(self, messages, **kw) -> str:
-        from anthropic import Anthropic
+        try:
+            from anthropic import Anthropic
+        except ImportError:
+            return "Error: anthropic not installed. Run: pip install anthropic"
         cl = Anthropic(api_key=self.api_key)
         r = cl.messages.create(
             model=self.model,
@@ -141,6 +158,7 @@ class AnthropicProvider(ModelProvider):
             messages=[m for m in messages if m["role"] != "system"],
             system="\n".join(m["content"] for m in messages if m["role"] == "system"),
         )
+        self.last_tokens = {"input": r.usage.input_tokens, "output": r.usage.output_tokens}
         return r.content[0].text if r.content else ""
 
     def chat_stream(self, messages, **kw):
@@ -179,6 +197,7 @@ class GoogleProvider(ModelProvider):
         prompt = messages[-1]["content"] if messages else ""
         chat = model.start_chat(history=history)
         r = chat.send_message(prompt)
+        self.last_tokens = {"input": 0, "output": len(prompt.split())}
         return r.text
 
     def chat_stream(self, messages, **kw):
