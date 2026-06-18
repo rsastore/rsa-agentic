@@ -69,6 +69,7 @@ class AgentSession:
         self._messages: list[dict] = []
         self.tool_callbacks: list[Callable] = []
         self.total_tokens = {"input": 0, "output": 0}
+        self._pending_approved = True
 
     @property
     def messages(self) -> list[dict]:
@@ -78,6 +79,22 @@ class AgentSession:
         self._messages = []
         self.session_id = os_mod.urandom(4).hex()
         self.persona = "default"
+        self._pending_approved = True
+
+    def _build_sys_prompt(self) -> str:
+        import os as _os
+        sys_file = self.config.get("system_prompt_file", "system.md")
+        sys_path = Path(_os.path.expanduser("~/rsa-agentic")) / sys_file
+        custom = sys_path.read_text() if sys_path.exists() else None
+        return build_system_prompt(custom, self.persona)
+
+    def _inject_knowledge(self, user_input: str) -> str:
+        try:
+            kctx = search_knowledge(user_input)
+            if kctx:
+                return f"{user_input}\n\n---\n{kctx}"
+        except: pass
+        return user_input
 
     def _extract_tool_call(self, text: str) -> dict | None:
         """Parse tool call with grammar-guided JSON + auto-fix for local LLMs."""
@@ -85,24 +102,11 @@ class AgentSession:
 
     def run(self, user_input: str) -> str:
         """Process user input through agent loop. Returns final answer."""
-        # Load system prompt
-        sys_file = self.config.get("system_prompt_file", "system.md")
-        sys_path = Path(os_mod.path.expanduser("~/rsa-agentic")) / sys_file
-        custom = sys_path.read_text() if sys_path.exists() else None
-        sys_prompt = build_system_prompt(custom, self.persona)
-
-        # Initialize messages if first turn
         if not self._messages:
-            self._messages.append({"role": "system", "content": sys_prompt})
+            self._messages.append({"role": "system", "content": self._build_sys_prompt()})
+        enriched = self._inject_knowledge(user_input)
+        self._messages.append({"role": "user", "content": enriched})
 
-        self._messages.append({"role": "user", "content": user_input})
-        # Inject relevant knowledge
-        try:
-            kctx = search_knowledge(user_input)
-            if kctx:
-                self._messages.append({"role": "system", "content": kctx})
-        except:
-            pass
 
         for step in range(self.max_iters):
             # Get model response
@@ -146,23 +150,18 @@ class AgentSession:
         return "Max iterations reached."
 
     def run_stream(self, user_input: str):
-        sys_file = self.config.get("system_prompt_file", "system.md")
-        sys_path = Path(os_mod.path.expanduser("~/rsa-agentic")) / sys_file
-        custom = sys_path.read_text() if sys_path.exists() else None
-        sys_prompt = build_system_prompt(custom, self.persona)
+        sys_prompt = self._build_sys_prompt()
         if not self._messages:
             self._messages.append({"role": "system", "content": sys_prompt})
-        self._messages.append({"role": "user", "content": user_input})
-        # Inject relevant knowledge
-        try:
-            kctx = search_knowledge(user_input)
-            if kctx:
-                self._messages.append({"role": "system", "content": kctx})
-        except:
-            pass
+        else:
+            self._messages[0] = {"role": "system", "content": sys_prompt}
+        
+        enriched = self._inject_knowledge(user_input)
+        self._messages.append({"role": "user", "content": enriched})
+        
         need_approval = self.config.get("need_approval", ["exec_shell"])
-        self._pending_approved = True
         for step in range(self.max_iters):
+            self._pending_approved = True
             collected = []
             try:
                 for token in self.provider.chat_stream(self._messages):
