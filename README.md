@@ -284,3 +284,7 @@ rsa-agentic/
 neural --server &
 curl http://localhost:8765/chat -d '{"message":"check disk"}'
 ```
+
+> **⚠️ Security:** Never commit `config.toml` to GitHub if it contains API keys.
+> Use `/provider key <name> <key>` to set keys instead of editing config.toml directly.
+> Add `config.toml` to your local `.gitignore` if needed.

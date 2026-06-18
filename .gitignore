@@ -8,3 +8,12 @@ sessions/
 # Database
 *.db
 vectordb/*.json
+.env             # Environment variables
+*.key            # Private keys
+*secret*         # Any secret files
+*token*          # Token files
+credentials      # Credential files
+.passwd          # Password files
+
+# Security — user-specific
+config.toml  # User's API keys — never commit
