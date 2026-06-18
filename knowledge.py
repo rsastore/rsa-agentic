@@ -142,6 +142,16 @@ def search_knowledge(query, k=5):
             combined.append((sim, doc, "vector"))
             seen.add(doc)
     
+    # Also search bundled metadata
+    try:
+        for sc, m in search_bundled(query, k):
+            doc = f"[{m['tool']}] {m['intent']}"
+            if doc not in seen:
+                combined.append((sc, doc, "bundle"))
+                seen.add(doc)
+    except:
+        pass
+    
     combined.sort(key=lambda x: -x[0])
     
     lines = ["## Knowledge Context"]
