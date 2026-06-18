@@ -879,6 +879,22 @@ class NeuralTUI:
                     console.print(f"[green]Preference saved: {kv[0].strip()} = {kv[1].strip()}[/green]")
                 else:
                     console.print("[yellow]Format: key=value[/yellow]")
+        elif cmd.startswith("/ft "):
+            parts = cmd.split(maxsplit=2)
+            if len(parts) < 2:
+                console.print("[yellow]Usage: /ft <dataset> [base_model]")
+                console.print("  /ft dataset.jsonl qwen3:0.6b")
+                console.print("  /ft nemotron-tool_calling.jsonl qwen2.5:1.5b")
+            else:
+                ds = parts[1]
+                model = parts[2] if len(parts) > 2 else "qwen3:0.6b"
+                console.print(f"[bold cyan]Fine-Tuning[/bold cyan]")
+                from fine_tune import run, detect_gpu
+                gpu = detect_gpu()
+                if not gpu["available"]:
+                    console.print("[yellow]Warning: No GPU detected. Training will be SLOW on CPU.[/yellow]")
+                result = run(ds, model)
+                console.print(result)
         elif cmd == "/plugins":
             try:
                 from plugin_loader import list_loaded, list_tools as plt
