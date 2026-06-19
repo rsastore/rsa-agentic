@@ -246,6 +246,37 @@ class NeuralTUI:
         cmd = cmd.strip().lower()
         import os as _os, sys as _sys
 
+        # Support commands without / prefix
+        noslash = {
+            "help": "/help", "exit": "/exit", "quit": "/exit",
+            "clear": "/clear", "reset": "/reset", "status": "/status",
+            "tools": "/tools", "save": "/save", "forget": "/forget",
+            "memory": "/memory", "knowledge": "/knowledge",
+            "plugins": "/plugins", "plan": "/plan",
+            "check": "/check", "cost": "/cost",
+            "provider": "/provider", "setup": "/setup",
+            "engine": "/engine", "model": "/model",
+            "vectordb": "/vectordb", "ft": "/ft",
+            "project": "/project", "tree": "/tree",
+            "explorer": "/explorer", "compact": "/compact",
+        }
+        if cmd in noslash:
+            cmd = noslash[cmd]
+        for prefix, slash_cmd in [
+            ("model ", "/model "), ("engine ", "/engine "),
+            ("provider set ", "/provider set "), ("provider key ", "/provider key "),
+            ("provider add ", "/provider add "),
+            ("hf search ", "/hf search "), ("hf pull ", "/hf pull "),
+            ("checklist ", "/checklist "), ("session ", "/session "),
+            ("persona ", "/persona "),
+            ("remember ", "/remember "), ("pref ", "/pref "),
+            ("install ", "/install "), ("reference ", "/reference "),
+            ("dataset ", "/dataset "), ("schedule ", "/schedule "),
+        ]:
+            if cmd.startswith(prefix):
+                cmd = slash_cmd + cmd[len(prefix):]
+                break
+
         # Simplify: map short commands
         if cmd.startswith("/model ") or cmd == "/model":
             # /model = install model, /model list = show popular
