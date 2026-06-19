@@ -230,7 +230,7 @@ class NeuralTUI:
                     if event["type"] == "token":
                         _done[0] = True
                         # Clear spinner line properly
-                        console.print("", end="\r")
+                        console.print("\r\r", end="")
                         if not buf:
                             console.print("[dim]⚡ [/dim]", end="")
                         # Typewriter effect: word by word with delay
