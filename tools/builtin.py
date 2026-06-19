@@ -413,6 +413,9 @@ def list_tools() -> list[str]:
 
 def tool_descriptions() -> str:
     lines = []
+    lines.append("## Available Tools")
+    lines.append('Format: {"tool": "name", "args": {"param": "val"}}')
+    lines.append("")
     for t in BUILTIN_TOOLS:
         params = ", ".join(f"{k}: {v}" for k, v in t.params.items())
         lines.append(f"- {t.name}({params}): {t.description}")
