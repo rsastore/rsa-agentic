@@ -784,7 +784,6 @@ class NeuralTUI:
                     if isinstance(cfg["model"][pname], dict):
                         cfg["model"][pname]["model"] = model_name
                     cfg["model"]["model_name"] = model_name
-                    from tools.builtin import _write_toml
                     _write_toml(cfg, cfg_path)
                     from models.providers import create_provider
                     self.provider = create_provider(cfg)
@@ -950,7 +949,6 @@ class NeuralTUI:
                     if isinstance(cfg["model"][pname], dict):
                         cfg["model"][pname]["model"] = model_name
                     cfg["model"]["model_name"] = model_name
-                    from tools.builtin import _write_toml
                     _write_toml(cfg, cfg_path)
                     from models.providers import create_provider
                     self.provider = create_provider(cfg)
