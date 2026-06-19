@@ -157,7 +157,16 @@ def create_provider(config: dict) -> ModelProvider:
     elif prov_name == "google":
         return GoogleProvider(prov_cfg)
     else:
-        # Unknown provider: try OpenAI-compatible (covers OpenRouter, DeepSeek, Groq, xAI, Together, etc.)
+        # Well-known OpenAI-compatible providers
+        known_apis = {
+            "deepseek": "https://api.deepseek.com",
+            "groq": "https://api.groq.com/openai/v1",
+            "openrouter": "https://openrouter.ai/api/v1",
+            "xai": "https://api.x.ai/v1",
+            "together": "https://api.together.xyz/v1",
+        }
+        if prov_name in known_apis and not prov_cfg.get("base_url"):
+            prov_cfg["base_url"] = known_apis[prov_name]
         prov_cfg["model"] = prov_cfg.get("model", config.get("model_name") or "gpt-4o")
         if prov_cfg.get("api_key") or prov_cfg.get("base_url"):
             return OpenAIProvider(prov_cfg)
