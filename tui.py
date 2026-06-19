@@ -724,6 +724,20 @@ class NeuralTUI:
                     console.print(f"[green]✅ {model_name} downloaded![/green]")
                 else:
                     console.print(f"[red]Failed: {r.stderr[:200]}[/red]")
+            elif action == "model" and not model_name:
+                popular = [
+                    ("qwen2.5:1.5b", "1.1 GB", "Best for HP 6GB RAM"),
+                    ("qwen2.5:3b", "2.0 GB", "Good balance"),
+                    ("llama3.2:3b", "2.0 GB", "Good English tool calling"),
+                    ("gemma2:2b", "1.5 GB", "Ringan, cukup akurat"),
+                    ("mistral:7b", "4.2 GB", "Butuh RAM lebih"),
+                    ("phi3:3.8b", "2.3 GB", "Microsoft, lumayan"),
+                ]
+                console.print("[bold cyan]Popular models:[/bold cyan]")
+                for i, (name, size, note) in enumerate(popular, 1):
+                    console.print(f"  {i}. [cyan]{name:<20}[/cyan] {size:<8} [dim]{note}[/dim]")
+                console.print()
+                console.print("[dim]Type: /install model <name> (e.g. /install model qwen2.5:1.5b)[/dim]")
             else:
                 console.print("[yellow]Usage: /install ollama | /install model <name>[/yellow]")
         elif cmd == "/check":
