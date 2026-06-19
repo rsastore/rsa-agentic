@@ -324,6 +324,7 @@ class NeuralTUI:
                     ("llama3.2:3b", "2.0 GB", "Best English tool calling"),
                     ("gemma2:2b", "1.5 GB", "Ringan"),
                     ("mistral:7b", "4.2 GB", "Best quality"),
+                    ("nemotron-mini:4b", "2.5 GB", "NVIDIA 4B, good for coding"),
                 ]
                 console.print("[bold cyan]Popular models:[/bold cyan]")
                 for i, (n, s, d) in enumerate(popular, 1):
@@ -453,7 +454,7 @@ class NeuralTUI:
                     console.print("[yellow]No models installed yet.[/yellow]")
                 # Also show popular suggestions
                 console.print("[dim]Popular (download with /model <name>):[/dim]")
-                popular = ["qwen2.5:1.5b", "llama3.2:3b", "gemma2:2b"]
+                popular = ["qwen2.5:1.5b", "llama3.2:3b", "gemma2:2b", "nemotron-mini:4b"]
                 console.print(f"  [dim]{', '.join(popular)}[/dim]")
                 return
             else:
