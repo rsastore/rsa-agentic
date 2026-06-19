@@ -56,6 +56,32 @@ def _check_ollama_status(host="http://localhost:11434", model=""):
     except Exception:
         return "❌ Ollama not running (/install ollama)", "red"
 
+def _write_toml(cfg, path):
+    """Write TOML config without tomli_w dependency."""
+    lines = []
+    for section, values in cfg.items():
+        lines.append(f"[{section}]")
+        if isinstance(values, dict):
+            for k, v in values.items():
+                if isinstance(v, dict):
+                    lines.append(f"[{section}.{k}]")
+                    for sk, sv in v.items():
+                        if isinstance(sv, bool):
+                            lines.append(f"{sk} = {'true' if sv else 'false'}")
+                        elif isinstance(sv, (int, float)):
+                            lines.append(f"{sk} = {sv}")
+                        else:
+                            lines.append(f'{sk} = "{sv}"')
+                elif isinstance(v, bool):
+                    lines.append(f"{k} = {'true' if v else 'false'}")
+                elif isinstance(v, (int, float)):
+                    lines.append(f"{k} = {v}")
+                else:
+                    lines.append(f'{k} = "{v}"')
+        lines.append("")
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+
 def bootstrap_display(provider_name: str, model_name: str, tool_count: int):
     grid = Table.grid(padding=1)
     grid.add_column(style="cyan bold")
@@ -855,13 +881,13 @@ class NeuralTUI:
             if not model_name:
                 console.print("[yellow]Usage: /model <name> (e.g. /model llama3.2:3b)[/yellow]")
             else:
-                import tomllib, tomli_w, os as _os
+                import tomllib, os as _os
                 cfg_path = _os.path.expanduser("~/rsa-agentic/config.toml")
                 if _os.path.exists(cfg_path):
                     cfg = tomllib.load(open(cfg_path, "rb"))
                     cfg["model"]["model_name"] = model_name
                     with open(cfg_path, "w") as f:
-                        tomli_w.dump(cfg, f)
+                        _write_toml(cfg, cfg_path)
                     console.print(f"[green]✅ Model set to {model_name}. Restart to apply.[/green]")
                 else:
                     console.print("[red]Config not found at ~/rsa-agentic/config.toml[/red]")
@@ -1086,7 +1112,7 @@ class NeuralTUI:
             console.print("  /provider add myapi url key      Add custom provider")
         elif cmd.startswith("/provider set "):
             pname = cmd[14:].strip()
-            import os, tomllib, tomli_w
+            import os, tomllib
             cfg_path = os.path.expanduser("~/rsa-agentic/config.toml")
             with open(cfg_path, "rb") as f:
                 cfg = tomllib.load(f)
@@ -1108,7 +1134,7 @@ class NeuralTUI:
             else:
                 pname = parts[1]
                 key = parts[2]
-                import os, tomllib, tomli_w
+                import os, tomllib
                 cfg_path = os.path.expanduser("~/rsa-agentic/config.toml")
                 with open(cfg_path, "rb") as f:
                     cfg = tomllib.load(f)
@@ -1116,7 +1142,7 @@ class NeuralTUI:
                     cfg["model"][pname] = {"api_key": ""}
                 cfg["model"][pname]["api_key"] = key
                 with open(cfg_path, "w") as f:
-                    tomli_w.dump(cfg, f)
+                    _write_toml(cfg, cfg_path)
                 console.print(f"[green]API key set for {pname}[/green]")
         elif cmd.startswith("/provider add "):
             parts = cmd.split(maxsplit=3)
@@ -1126,13 +1152,13 @@ class NeuralTUI:
                 pname = parts[1]
                 url = parts[2]
                 key = parts[3] if len(parts) > 3 else ""
-                import os, tomllib, tomli_w
+                import os, tomllib
                 cfg_path = os.path.expanduser("~/rsa-agentic/config.toml")
                 with open(cfg_path, "rb") as f:
                     cfg = tomllib.load(f)
                 cfg["model"][pname] = {"api_key": key, "base_url": url, "model": "gpt-4o"}
                 with open(cfg_path, "w") as f:
-                    tomli_w.dump(cfg, f)
+                    _write_toml(cfg, cfg_path)
                 console.print(f"[green]Added provider: {pname}[/green]")
                 console.print("[dim]To use it: /provider set {pname}[/dim]")
         elif cmd == "/project":
