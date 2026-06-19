@@ -74,20 +74,31 @@ class OllamaProvider(ModelProvider):
         self.last_tokens = {"input": 0, "output": 0, "ttft": 0, "elapsed": 0}
         _start = _t.time()
         _first = True
-        for line in r.iter_lines(decode_unicode=True):
-            if line:
-                data = json.loads(line)
-                content = data.get("message", {}).get("content", "")
-                if content:
-                    if _first:
-                        self.last_tokens["ttft"] = _t.time() - _start
-                        _first = False
-                    yield content
-                if data.get("done", False):
-                    self.last_tokens["elapsed"] = _t.time() - _start
-                    self.last_tokens["input"] = data.get("prompt_eval_count",0)
-                    self.last_tokens["output"] = data.get("eval_count",0)
-                    break
+        _buffer = ""
+        for chunk in r.iter_content(chunk_size=None, decode_unicode=True):
+            if not chunk:
+                continue
+            _buffer += chunk
+            # Process each complete JSON line
+            while "\n" in _buffer:
+                line, _buffer = _buffer.split("\n", 1)
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    content = data.get("message", {}).get("content", "")
+                    if content:
+                        if _first:
+                            self.last_tokens["ttft"] = _t.time() - _start
+                            _first = False
+                        yield content
+                    if data.get("done", False):
+                        self.last_tokens["elapsed"] = _t.time() - _start
+                        self.last_tokens["input"] = data.get("prompt_eval_count",0)
+                        self.last_tokens["output"] = data.get("eval_count",0)
+                except json.JSONDecodeError:
+                    pass
 
 
 class OpenAIProvider(ModelProvider):
