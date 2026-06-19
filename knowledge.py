@@ -174,7 +174,7 @@ def search_knowledge(query, k=5):
             if doc not in seen:
                 combined.append((sc, doc, "bundle"))
                 seen.add(doc)
-    except:
+    except Exception:
         pass
     
     # Also search dataset for few-shot examples
@@ -184,7 +184,7 @@ def search_knowledge(query, k=5):
             msgs = sample.get("messages", [])
             if msgs:
                 dataset_example = f"Example: '{msgs[0]['content'][:50]}'"
-    except:
+    except Exception:
         pass
     
     combined.sort(key=lambda x: -x[0])
