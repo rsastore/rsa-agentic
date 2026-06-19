@@ -238,8 +238,6 @@ class NeuralTUI:
         import os as _os, sys as _sys
 
         if cmd == "/exit":
-            __sys.exit(0)
-            import sys
             self._handle_exit()
             _sys.exit(0)
         elif cmd in ("/help", "/?"):
