@@ -896,12 +896,12 @@ class NeuralTUI:
                 provider = cfg.get("model", {}).get("provider", "?")
                 console.print(f"[cyan]Current: {provider} / {current}[/cyan]")
                 latest = {
-                    "deepseek": ["deepseek-chat", "deepseek-coder", "deepseek-reasoner"],
-                    "openai": ["gpt-4o", "gpt-4o-mini", "o3-mini", "o4-mini", "gpt-4.1", "gpt-4.1-nano"],
+                    "deepseek": ["deepseek-chat", "deepseek-coder", "deepseek-reasoner", "deepseek-v3", "deepseek-r1"],
+                    "openai": ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-4o", "o3-mini", "o4-mini"],
                     "anthropic": ["claude-sonnet-4-20250514", "claude-haiku-3-20250313", "claude-opus-4-20250514"],
                     "google": ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"],
-                    "groq": ["llama3-70b-8192", "llama-3.3-70b-versatile"],
-                    "openrouter": ["openai/gpt-4o", "anthropic/claude-sonnet", "deepseek/deepseek-chat"],
+                    "groq": ["llama-4-scout-17b", "llama-4-maverick-17b", "deepseek-r1-distill-llama-70b"],
+                    "openrouter": ["deepseek/deepseek-chat", "openai/gpt-5.5", "anthropic/claude-sonnet-4", "google/gemini-2.5-flash"],
                 }
                 models = latest.get(provider, [])
                 if models:
