@@ -726,6 +726,25 @@ class NeuralTUI:
                     console.print(f"[red]Failed: {r.stderr[:200]}[/red]")
             else:
                 console.print("[yellow]Usage: /install ollama | /install model <name>[/yellow]")
+        elif cmd == "/check":
+            # Quick system check
+            import requests as _req, os as _os
+            console.print("[bold cyan]System Check[/bold cyan]")
+            # Ollama check
+            try:
+                _r = _req.get("http://localhost:11434/api/tags", timeout=2)
+                if _r.status_code == 200:
+                    models = _r.json().get("models", [])
+                    names = [m["name"] for m in models]
+                    console.print(f"  [green]✅ Ollama running[/green] ({len(models)} models: {', '.join(names[:3])})")
+                else:
+                    console.print("  [red]❌ Ollama not responding[/red]")
+            except:
+                console.print("  [red]❌ Ollama not running[/red]")
+            # RAM check
+            import subprocess
+            r = subprocess.run(["free", "-h"], capture_output=True, text=True, timeout=5)
+            console.print(f"  [cyan]💾 RAM:[/cyan] {r.stdout[:80].strip()}")
         elif cmd == "/provider":
             import os, tomllib
             cfg_path = os.path.expanduser("~/rsa-agentic/config.toml")
