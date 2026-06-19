@@ -280,7 +280,21 @@ class NeuralTUI:
 - `/vectordb` — Rebuild vector index with embeddings
 - `/ft` — Fine-tune model with dataset
 - `/hf search <query>` — Search models on HuggingFace
+- `/hf search <query>` — Search models on HuggingFace
 - `/hf pull <model>` — Download model from HuggingFace
+- `/model <name>` — Switch model (config)
+- `/models` — List installed models
+- `/reference <url>` — Analyze GitHub repo
+- `/context` — Show terminal context
+- `/memory` — Show working/episodic/preference memory
+- `/plan` — Show planning mode
+- `/quant` — Quantize model settings
+- `/nemotron` — One-click download + learn from Nemotron dataset
+- `/project` — Show project info
+- `/tree` — Show project tree
+- `/schedule` — Task scheduler
+- `/cost` — Show token usage & cost
+- `/explorer` — File explorer
 - `/dataset` — Manage dataset (list, search, learn)
             """
             console.print(Markdown(help_text))
