@@ -848,6 +848,63 @@ class NeuralTUI:
                     console.print(f"[green]✅ Model set to {model_name}. Restart to apply.[/green]")
                 else:
                     console.print("[red]Config not found at ~/rsa-agentic/config.toml[/red]")
+        elif cmd == "/audit":
+            import os as _os, sys as _sys, importlib
+            console.print("[bold cyan]🔍 Self-Audit[/bold cyan]")
+            console.print("Scanning own codebase for issues...\n")
+            
+            # 1. Check for bare except:
+            issues = []
+            code_files = ["agent.py", "neural.py", "tui.py", "tools/builtin.py", 
+                         "db.py", "memory.py", "knowledge.py", "planner.py", 
+                         "grammar.py", "compact.py", "server.py", "models/providers.py"]
+            
+            for f in code_files:
+                fp = f"{_os.path.dirname(_os.path.abspath(__file__))}/{f}"
+                if not _os.path.exists(fp):
+                    continue
+                content = open(fp).read()
+                import re
+                bare = re.findall(r'^\s*except:\s*$', content, re.MULTILINE)
+                if bare:
+                    issues.append(("❌ Bare except", f, f"{len(bare)} found"))
+                if "TODO" in content or "FIXME" in content:
+                    todos = re.findall(r'(?:TODO|FIXME)[^\n]*', content)
+                    for t in todos[:3]:
+                        issues.append(("📝 TODO", f, t.strip()))
+                    
+            if issues:
+                console.print(f"[yellow]Found {len(issues)} issues:[/yellow]")
+                for typ, file, msg in issues[:15]:
+                    console.print(f"  {typ:<15} {file:<20} {msg[:40]}")
+            else:
+                console.print("[green]✅ No issues found![/green]")
+            
+            # 2. Git status
+            console.print("\n[bold]Git status:[/bold]", end=" ")
+            import subprocess as _sp
+            r = _sp.run(["git", "status", "--short"], capture_output=True, text=True, timeout=5, 
+                       cwd=_os.path.dirname(_os.path.abspath(__file__)))
+            if r.stdout.strip():
+                console.print(f"[yellow]{r.stdout.count(chr(10))} uncommitted[/yellow]")
+                for line in r.stdout.strip().split(chr(10))[:5]:
+                    console.print(f"  [dim]{line[:60]}[/dim]")
+            else:
+                console.print("[green]clean[/green]")
+            
+            # 3. File sizes
+            console.print("\n[bold]Codebase size:[/bold]", end=" ")
+            total = 0
+            for f in code_files:
+                fp = f"{_os.path.dirname(_os.path.abspath(__file__))}/{f}"
+                if _os.path.exists(fp):
+                    total += _os.path.getsize(fp)
+            console.print(f"{total/1024:.0f} KB across {len(code_files)} files")
+            console.print("\n[dim]Usage: /audit fix to auto-fix common issues[/dim]")
+        
+        elif cmd == "/audit fix":
+            console.print("[yellow]Auto-fix requires API/7B+ model. Run manually or use /provider set openai[/yellow]")
+        
         elif cmd == "/setup":
             import os as _os
             # Create symlink in Termux bin dir
