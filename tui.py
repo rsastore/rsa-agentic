@@ -317,7 +317,7 @@ class NeuralTUI:
             # /model = install model, /model list = show popular
             parts = cmd.split(None, 1)
             sub = parts[1].strip() if len(parts) > 1 else ""
-            if not sub or sub == "list":
+            if not sub or sub == "list" or sub.startswith("list "):
                 # Show popular models
                 popular = [
                     ("qwen2.5:1.5b", "1.1 GB", "Best for HP 6GB RAM"),
@@ -436,7 +436,7 @@ class NeuralTUI:
         if cmd.startswith("/model ") or cmd == "/model":
             parts = cmd.split(None, 1)
             sub = parts[1].strip() if len(parts) > 1 else ""
-            if not sub or sub == "list":
+            if not sub or sub == "list" or sub.startswith("list "):
                 # Show REAL installed models from Ollama
                 import requests as _req
                 installed = []
@@ -1534,7 +1534,7 @@ class NeuralTUI:
         elif cmd.startswith("/session"):
             parts = cmd.split(maxsplit=1)
             sub = parts[1].strip() if len(parts) > 1 else ""
-            if not sub or sub == "list":
+            if not sub or sub == "list" or sub.startswith("list "):
                 sessions = sorted(self.sessions_dir.glob("*.json"), reverse=True)
                 if not sessions:
                     console.print("[dim]No saved sessions.[/dim]")
