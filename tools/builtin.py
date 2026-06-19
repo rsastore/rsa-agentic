@@ -401,6 +401,33 @@ def get_tool(name: str) -> Tool | None:
         pass
     return None
 
+def _write_toml(cfg, path):
+    """Write TOML config without tomli_w."""
+    lines = []
+    for section, values in cfg.items():
+        lines.append(f"[{section}]")
+        if isinstance(values, dict):
+            for k, v in values.items():
+                if isinstance(v, dict):
+                    lines.append(f"[{section}.{k}]")
+                    for sk, sv in v.items():
+                        if isinstance(sv, bool):
+                            lines.append(f'{sk} = ' + ('true' if sv else 'false'))
+                        elif isinstance(sv, (int, float)):
+                            lines.append(f'{sk} = {sv}')
+                        else:
+                            lines.append(f'{sk} = "{sv}"')
+                elif isinstance(v, bool):
+                    lines.append(f'{k} = ' + ('true' if v else 'false'))
+                elif isinstance(v, (int, float)):
+                    lines.append(f'{k} = {v}')
+                else:
+                    lines.append(f'{k} = "{v}"')
+        lines.append("")
+    with open(path, "w") as f:
+        f.write("\n".join(lines))
+
+
 def list_tools() -> list[str]:
     builtin = list(TOOL_MAP.keys())
     _ensure_plugins()

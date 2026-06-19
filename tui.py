@@ -773,6 +773,25 @@ class NeuralTUI:
                     console.print(f"[red]Error: {e}[/red]")
         elif cmd.startswith("/model "):
             model_name = cmd[7:].strip()
+            # Check if current provider is API (not ollama)
+            if self.provider and "ollama" not in self.provider.name.lower():
+                # Switch model on current API provider
+                import os as _os, tomllib
+                cfg_path = _os.path.expanduser("~/rsa-agentic/config.toml")
+                cfg = tomllib.load(open(cfg_path, "rb"))
+                pname = cfg.get("model", {}).get("provider", "")
+                if pname and pname in cfg.get("model", {}):
+                    if isinstance(cfg["model"][pname], dict):
+                        cfg["model"][pname]["model"] = model_name
+                    cfg["model"]["model_name"] = model_name
+                    from tools.builtin import _write_toml
+                    _write_toml(cfg, cfg_path)
+                    from models.providers import create_provider
+                    self.provider = create_provider(cfg)
+                    self.config = cfg
+                    console.print(f"[green]✅ Switched to {self.provider.name}[/green]")
+                    return
+
             if not model_name:
                 console.print("[yellow]Usage: /model <name> (e.g. /model qwen2.5:1.5b)[/yellow]")
             else:
@@ -878,6 +897,25 @@ class NeuralTUI:
             console.print("[yellow]Usage: /model <name> (e.g. /model llama3.2:3b)[/yellow]")
         elif cmd.startswith("/model "):
             model_name = cmd[7:].strip()
+            # Check if current provider is API (not ollama)
+            if self.provider and "ollama" not in self.provider.name.lower():
+                # Switch model on current API provider
+                import os as _os, tomllib
+                cfg_path = _os.path.expanduser("~/rsa-agentic/config.toml")
+                cfg = tomllib.load(open(cfg_path, "rb"))
+                pname = cfg.get("model", {}).get("provider", "")
+                if pname and pname in cfg.get("model", {}):
+                    if isinstance(cfg["model"][pname], dict):
+                        cfg["model"][pname]["model"] = model_name
+                    cfg["model"]["model_name"] = model_name
+                    from tools.builtin import _write_toml
+                    _write_toml(cfg, cfg_path)
+                    from models.providers import create_provider
+                    self.provider = create_provider(cfg)
+                    self.config = cfg
+                    console.print(f"[green]✅ Switched to {self.provider.name}[/green]")
+                    return
+
             if not model_name:
                 console.print("[yellow]Usage: /model <name> (e.g. /model llama3.2:3b)[/yellow]")
             else:
@@ -1111,12 +1149,22 @@ class NeuralTUI:
             console.print("  /provider key openai sk-xxx      Set API key")
             console.print("  /provider add myapi url key      Add custom provider")
         elif cmd.startswith("/provider set "):
-            pname = cmd[14:].strip()
+            rest = cmd[14:].strip()
+            parts = rest.split(None, 1)
+            pname = parts[0]
+            model_override = parts[1] if len(parts) > 1 else None
             import os, tomllib
             cfg_path = os.path.expanduser("~/rsa-agentic/config.toml")
             with open(cfg_path, "rb") as f:
                 cfg = tomllib.load(f)
             cfg["model"]["provider"] = pname
+            # Allow model override: /provider set <name> <model>
+            if model_override:
+                if pname in cfg["model"] and isinstance(cfg["model"][pname], dict):
+                    cfg["model"][pname]["model"] = model_override
+                else:
+                    cfg["model"][pname] = {"model": model_override, "api_key": ""}
+                cfg["model"]["model_name"] = model_override
             if pname == "openai" and not cfg["model"].get("openai",{}).get("api_key"):
                 console.print("[yellow]Warning: OpenAI key not set. Set with: /provider key openai <key>[/yellow]")
             with open(cfg_path, "w") as f:
