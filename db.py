@@ -78,6 +78,7 @@ def save_session(session_id, model, messages):
     db = get_db()
     db.execute("INSERT OR REPLACE INTO sessions (id, model, created_at, message_count) VALUES (?,?,?,?)",
                (session_id, model, time.time(), len(messages)))
+    db.execute("DELETE FROM messages WHERE session_id=?", (session_id,))
     for m in messages:
         db.execute("INSERT INTO messages (session_id, role, content, created_at) VALUES (?,?,?,?)",
                    (session_id, m.get("role"), m.get("content",""), time.time()))
