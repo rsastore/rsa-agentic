@@ -61,7 +61,16 @@ def bootstrap_display(provider_name: str, model_name: str, tool_count: int):
     grid.add_column(style="cyan bold")
     grid.add_column()
     grid.add_row("● Model", f"{model_name}")
-    grid.add_row("● Provider", provider_name)
+    # Check real status for Ollama
+    import requests as _req
+    try:
+        _r = _req.get("http://localhost:11434/api/tags", timeout=2)
+        if _r.status_code == 200:
+            grid.add_row("● Provider", provider_name)
+        else:
+            grid.add_row("● Provider", f"[red]{provider_name} — not responding[/red]")
+    except Exception:
+        grid.add_row("● Provider", f"[red]{provider_name} — not running[/red]")
     grid.add_row("● Tools", str(tool_count))
     status, color = _check_ollama_status(model=model_name)
     grid.add_row("● Status", f"[{color}]{status}[/{color}]")
