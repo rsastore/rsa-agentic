@@ -537,9 +537,9 @@ class NeuralTUI:
                         style = "green" if item["done"] else "yellow"
                         console.print(f"  [{style}]{i}. [{mark}] {item[chr(34)+chr(116)+chr(97)+chr(115)+chr(107)+chr(34)]}[/{style}]")
         elif cmd == "/compact":
-            before = len(self.session.messages)
-            self.session.messages = compact_messages(
-                self.session.messages, self.provider
+            before = len(self.session._messages)
+            self.session._messages = compact_messages(
+                self.session._messages, self.provider
             )
             after = len(self.session.messages)
             console.print(f"[green]Compacted: {before} → {after} messages[/green]")
