@@ -295,6 +295,52 @@ class NeuralTUI:
             else:
                 console.print(f"[yellow]Unknown engine: {eng}. Try: ollama, llama.cpp, vllm[/yellow]")
         
+        # Simplified commands
+        if cmd == "/engine":
+            engines = [
+                ("ollama", "Default, easiest"),
+                ("llama.cpp", "Native C++, faster on CPU"),
+                ("vllm", "Fastest on GPU"),
+            ]
+            console.print("[bold cyan]Inference engines:[/bold cyan]")
+            for i, (n, d) in enumerate(engines, 1):
+                console.print(f"  {i}. [cyan]{n:<15}[/cyan] {d}")
+            console.print("[dim]Usage: /engine ollama | /engine llama.cpp | /engine vllm[/dim]")
+            return
+        if cmd.startswith("/engine "):
+            eng = cmd[8:].strip()
+            if eng == "ollama":
+                console.print("[cyan]Installing Ollama...[/cyan]")
+                import os as _os, subprocess as _sp
+                if _os.path.exists("/data/data/com.termux"):
+                    _sp.run(["pkg", "install", "ollama", "-y"], timeout=120)
+                else:
+                    _sp.run(["curl", "-fsSL", "https://ollama.com/install.sh", "|", "sh"], shell=True, timeout=120)
+                console.print("[green]✅ Ollama installed! Run: ollama serve &[/green]")
+            return
+        if cmd.startswith("/model ") or cmd == "/model":
+            parts = cmd.split(None, 1)
+            sub = parts[1].strip() if len(parts) > 1 else ""
+            if not sub or sub == "list":
+                popular = [
+                    ("qwen2.5:1.5b", "1.1 GB", "Best for HP 6GB RAM"),
+                    ("llama3.2:3b", "2.0 GB", "Best English tool calling"),
+                    ("gemma2:2b", "1.5 GB", "Ringan"),
+                    ("mistral:7b", "4.2 GB", "Best quality"),
+                ]
+                console.print("[bold cyan]Popular models:[/bold cyan]")
+                for i, (n, s, d) in enumerate(popular, 1):
+                    console.print(f"  {i}. [cyan]{n:<20}[/cyan] {s:<8} [dim]{d}[/dim]")
+                console.print("[dim]Usage: /model <name> (e.g. /model llama3.2:3b)[/dim]")
+            else:
+                import subprocess as _sp
+                console.print(f"[cyan]Downloading {sub}...[/cyan]")
+                _sp.run(["ollama", "pull", sub], timeout=300)
+            return
+        if cmd == "/hf search":
+            console.print("[yellow]Usage: /hf search <query> (e.g. /hf search qwen 3b)[/yellow]")
+            return
+        
         if cmd == "/exit":
             self._handle_exit()
             _sys.exit(0)
