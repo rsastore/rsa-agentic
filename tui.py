@@ -246,6 +246,55 @@ class NeuralTUI:
         cmd = cmd.strip().lower()
         import os as _os, sys as _sys
 
+        # Simplify: map short commands
+        if cmd.startswith("/model ") or cmd == "/model":
+            # /model = install model, /model list = show popular
+            parts = cmd.split(None, 1)
+            sub = parts[1].strip() if len(parts) > 1 else ""
+            if not sub or sub == "list":
+                # Show popular models
+                popular = [
+                    ("qwen2.5:1.5b", "1.1 GB", "Best for HP 6GB RAM"),
+                    ("llama3.2:3b", "2.0 GB", "Best English tool calling"),
+                    ("gemma2:2b", "1.5 GB", "Ringan"),
+                    ("mistral:7b", "4.2 GB", "Best quality"),
+                ]
+                console.print("[bold cyan]Popular models:[/bold cyan]")
+                for i, (n, s, d) in enumerate(popular, 1):
+                    console.print(f"  {i}. [cyan]{n:<20}[/cyan] {s:<8} [dim]{d}[/dim]")
+                console.print("[dim]Usage: /model <name> (e.g. /model llama3.2:3b)[/dim]")
+            else:
+                # Download model
+                import subprocess as _sp
+                console.print(f"[cyan]Downloading {sub}...[/cyan]")
+                _sp.run(["ollama", "pull", sub], timeout=300)
+        elif cmd == "/engine":
+            engines = [
+                ("ollama", "Default, easiest"),
+                ("llama.cpp", "Native C++, faster on CPU"),
+                ("vllm", "Fastest on GPU"),
+            ]
+            console.print("[bold cyan]Inference engines:[/bold cyan]")
+            for i, (n, d) in enumerate(engines, 1):
+                console.print(f"  {i}. [cyan]{n:<15}[/cyan] {d}")
+            console.print("[dim]Usage: /engine ollama | /engine llama.cpp | /engine vllm[/dim]")
+        elif cmd.startswith("/engine "):
+            eng = cmd[8:].strip()
+            import subprocess as _sp, os as _os
+            if eng == "ollama":
+                console.print("[cyan]Installing Ollama...[/cyan]")
+                if _os.path.exists("/data/data/com.termux"):
+                    _sp.run(["pkg", "install", "ollama", "-y"], timeout=120)
+                else:
+                    _sp.run(["curl", "-fsSL", "https://ollama.com/install.sh", "|", "sh"], shell=True, timeout=120)
+                console.print("[green]✅ Ollama installed! Run: ollama serve &[/green]")
+            elif eng == "llama.cpp":
+                console.print("[cyan]Installing llama.cpp...[/cyan]")
+                _sp.run(["git", "clone", "https://github.com/ggerganov/llama.cpp", "/tmp/llama.cpp"], timeout=60)
+                console.print("[green]✅ Cloned! Build: cd /tmp/llama.cpp && make -j4[/green]")
+            else:
+                console.print(f"[yellow]Unknown engine: {eng}. Try: ollama, llama.cpp, vllm[/yellow]")
+        
         if cmd == "/exit":
             self._handle_exit()
             _sys.exit(0)
