@@ -77,6 +77,6 @@ def register(reg):
     for tname, info in MCP_TOOLS.items():
         srv_name = info.get("server", "unknown")
         desc = info.get("desc", "") or f"MCP tool from {srv_name}"
-        reg(PluginTool(tname, lambda **kw: _call_mcp(tname, **kw), desc, info["params"]))
+        reg(PluginTool(tname, lambda _t=tname, **kw: _call_mcp(_t, **kw), desc, info["params"]))
     # Also register connect command as tool
     reg(PluginTool("mcp_connect", lambda srv,cmd,args="": json.dumps(connect_server(srv,cmd,args.split())), "Connect to an MCP server", {"srv":"server name","cmd":"command","args":"arguments (space-separated)"}))
