@@ -16,11 +16,9 @@ try:
 except ImportError:
     import tomli as tomllib  # pip install tomli
 
-# Auto-cd to project root (works on Colab, VPS, etc.)
-_PROJECT_ROOT = Path(__file__).parent.resolve()
-os.chdir(str(_PROJECT_ROOT))
-
 def main():
+    _PROJECT_ROOT = Path(__file__).parent.resolve()
+    os.chdir(str(_PROJECT_ROOT))
     # Check first-run: warn if no providers configured
     import tomllib
     cfg_path = os.path.expanduser("~/rsa-agentic/config.toml")
@@ -53,8 +51,14 @@ def main():
     # Load config
     cfg_path = Path.home() / "rsa-agentic" / "config.toml"
     if not cfg_path.exists():
-        print("Config not found. Run from ~/rsa-agentic/ directory.")
-        return
+        import shutil
+        example = Path.home() / "rsa-agentic" / "config.toml.example"
+        if example.exists():
+            shutil.copy(str(example), str(cfg_path))
+            print(f"Created config: {cfg_path}")
+        else:
+            print("Config not found. Run from ~/rsa-agentic/ directory.")
+            return
 
     import tomllib
     config = tomllib.loads(cfg_path.read_text())
