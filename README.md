@@ -154,6 +154,7 @@ No root required. Runs in Termux with local models via llama.cpp.
 | `/knowledge` | Show learned facts and skills |
 | `/forget` | Clear all learned knowledge |
 | `/nemotron` | One-click download + learn from Nemotron dataset |
+| `/vectordb` | Rebuild vector index with embeddings |
 | `/dataset list` | List downloaded datasets |
 | `/dataset pull <name>` | Download a HuggingFace dataset |
 | `/dataset learn <name>` | Extract patterns from dataset |
