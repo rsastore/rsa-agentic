@@ -1436,7 +1436,25 @@ class NeuralTUI:
                 json.dump(data, f, indent=2, default=str)
             console.print(f"[green]✓ Saved: {path}[/green]")
         else:
-            console.print(f"[red]Unknown command: {cmd}. Try /help[/red]")
+            # Tool shortcut commands - bypass model, run directly
+            parts = cmd.split(None, 1)
+            tool_name = parts[0][1:] if parts else ""  # remove /
+            tool_args = parts[1] if len(parts) > 1 else ""
+            
+            from tools.builtin import get_tool, list_tools
+            if tool_name in list_tools():
+                tool = get_tool(tool_name)
+                if tool:
+                    console.print(f"  [dim]⚡ /{tool_name} {tool_args}[/dim]")
+                    try:
+                        result = tool.fn(tool_args)
+                        console.print(f"  [green]{str(result)[:500]}[/green]")
+                    except Exception as e:
+                        console.print(f"  [red]Error: {e}[/red]")
+                else:
+                    console.print(f"[red]Unknown command: {cmd}. Try /help[/red]")
+            else:
+                console.print(f"[red]Unknown command: {cmd}. Try /help[/red]")
 
     def _handle_exit(self):
         console.print("\n[dim]Neural session ended.[/dim]")
