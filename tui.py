@@ -274,7 +274,6 @@ class NeuralTUI:
                     elif event["type"] == "final":
                         output = event["content"]
                         console.print()
-                        self._print_chat_bubble("assistant", output)
                         saved = self._save_session(user_input, output)
                         console.print(f"  [dim]💾 {saved}[/dim]")
 
