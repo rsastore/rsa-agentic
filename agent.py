@@ -49,7 +49,7 @@ When the task is complete, respond with a natural language answer.
         pi = persona_instruction(persona)
         if pi:
             base += f"\n\n## Mode: {persona}\n{pi}"
-    except:
+    except Exception:
         pass
     if custom_prompt:
         base += f"\n\n## Additional Instructions\n{custom_prompt}"
@@ -180,7 +180,7 @@ class AgentSession:
                 if t:
                     self.total_tokens["input"] += t.get("input", 0)
                     self.total_tokens["output"] += t.get("output", 0)
-            except:
+            except Exception:
                 pass
             call = self._extract_tool_call(raw)
             if call is None:
@@ -191,7 +191,7 @@ class AgentSession:
                         if msg["role"] == "user":
                             learn_from_interaction(msg["content"], raw, [])
                             break
-                except:
+                except Exception:
                     pass
                 yield {"type": "final", "content": raw}
                 return
