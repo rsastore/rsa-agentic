@@ -15,9 +15,7 @@ cd rsa-agentic
 # Update (get latest features + bug fixes)
 git pull
 
-# Make it accessible from anywhere:
-echo 'export PATH=\$PATH:~/rsa-agentic' >> ~/.bashrc
-source ~/.bashrc
+# That's it! Just type:
 rsa
 
 # Local (Ollama)
